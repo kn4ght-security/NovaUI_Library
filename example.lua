@@ -1,4 +1,4 @@
--- NovaUI example: one of every element
+-- NovaUI libray example: one of every element
 local NovaUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/kn4ght-security/NovaUI_Library/refs/heads/main/NovaUI_Libray.lua"))()
 
 local Players = game:GetService("Players")
@@ -13,9 +13,7 @@ local window = NovaUI:CreateWindow({
 	ToggleKey = Enum.KeyCode.RightShift,
 })
 
-------------------------------------------------------------
 -- Main tab
-------------------------------------------------------------
 local main = window:CreateTab("Main")
 
 main:Section("Player")
@@ -77,9 +75,7 @@ main:Paragraph({
 	Content = "Paragraphs hold longer text under a title.",
 })
 
-------------------------------------------------------------
 -- Inputs tab
-------------------------------------------------------------
 local inputs = window:CreateTab("Inputs")
 
 inputs:Section("Choices")
@@ -137,9 +133,7 @@ inputs:ColorPicker({
 	end,
 })
 
-------------------------------------------------------------
 -- Extras tab
-------------------------------------------------------------
 local extras = window:CreateTab("Extras")
 
 extras:Section("Progress")
@@ -173,9 +167,7 @@ extras:CodeBox({
 	Height = 120,
 })
 
-------------------------------------------------------------
 -- Settings tab
-------------------------------------------------------------
 local settings = window:CreateTab("Settings")
 settings:Section("Configs")
 settings:ConfigManager() -- save / load every element that has a Flag
