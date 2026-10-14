@@ -1,6 +1,14 @@
--- nova ui: single file, demo at the bottom
+--[[
+	MIT License
+	Copyright (c) 2026 Kn4ght
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software, to use, copy, modify, merge, publish, distribute, and sell
+	copies, subject to including this copyright notice in all copies.
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+]]
+
+-- nova ui: made by kn4ght, rate it pls
 -- to use it as a library, delete everything under the DEMO line, host it,
--- then: local NovaUI = loadstring(game:HttpGet("<raw link>"))()
 
 local NovaUI = (function()
 --[[
