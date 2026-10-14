@@ -1,5 +1,4 @@
 -- nova ui: single file, demo at the bottom
--- then: local NovaUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/kn4ght-security/NovaUI_Library/refs/heads/main/NovaUI_Library.lua"))()
 
 local NovaUI = (function()
 --[[
