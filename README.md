@@ -2,7 +2,7 @@ Nova ui library is another Roblox UI library. so rate it pls : D
 
 Free Use License — Attribution Required (FULAR)
 
-Copyright (c) 2026 [YOUR NAME OR BRAND]
+Copyright (c) 2026 [Kn4ght & NovaUI library]
 
 All Rights Reserved, subject to the permissions granted below.
 
