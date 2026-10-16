@@ -1,4 +1,4 @@
--- nova ui library  load it with
+-- nova ui library made by kn4ght.
 local NovaUI = (function()
 --[[
 	quick usage
