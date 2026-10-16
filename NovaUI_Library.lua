@@ -1,6 +1,4 @@
--- nova ui library (no demo). load it with:
--- local NovaUI = loadstring(game:HttpGet("<raw link>"))()
-
+-- nova ui library  load it with
 local NovaUI = (function()
 --[[
 	quick usage
