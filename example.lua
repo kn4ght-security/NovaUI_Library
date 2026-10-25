@@ -194,7 +194,7 @@ extras:CodeBox({
 -- Settings tab
 local settings = window:CreateTab("Settings")
 settings:Section("Configs")
-settings:ConfigManager() -- save / load every element that has a Flag
+settings:ConfigManager() -- create / load / overwrite / delete + auto load
 
 settings:Section("Window")
 settings:Button({

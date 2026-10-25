@@ -1,4 +1,6 @@
--- nova ui library made by kn4ght.
+-- nova ui library (no demo). load it with:
+-- local NovaUI = loadstring(game:HttpGet("<raw link>"))()
+
 local NovaUI = (function()
 --[[
 	quick usage
@@ -7,7 +9,7 @@ local NovaUI = (function()
 	tab:Section / Label / Paragraph / Divider / Button / Toggle / Slider
 	tab:Dropdown / Textbox / Keybind / ColorPicker / Progress / CodeBox / ConfigManager
 	add Flag = "id" to an element and it gets saved with configs
-	NovaUI:Notify / Dialog / Run / CheckSyntax / SaveConfig / LoadConfig / Unload
+	NovaUI:Notify / Dialog / Run / CheckSyntax / SaveConfig / LoadConfig / OverwriteConfig / DeleteConfig / SetAutoLoad / ClearAutoLoad / AutoLoad / Unload
 ]]
 
 local cloneref = cloneref or clonereference or function(obj)
@@ -896,7 +898,7 @@ function Library:GetConfigs()
 	return out
 end
 
-function Library:SaveConfig(name)
+function Library:SaveConfig(name, overwrite)
 	if not HasFiles() then
 		self:Error("This environment has no writefile/readfile, so configs can't be saved.", "Config")
 		return false
@@ -919,11 +921,11 @@ function Library:SaveConfig(name)
 		self:Error(tostring(err), "Config save failed")
 		return false
 	end
-	self:Notify({ Title = "Config saved", Content = name, Type = "Success", Duration = 2.5 })
+	self:Notify({ Title = overwrite and "Config overwritten" or "Config saved", Content = name, Type = "Success", Duration = 2.5 })
 	return true
 end
 
-function Library:LoadConfig(name)
+function Library:LoadConfig(name, auto)
 	if not HasFiles() then
 		self:Error("This environment has no writefile/readfile, so configs can't be loaded.", "Config")
 		return false
@@ -950,8 +952,130 @@ function Library:LoadConfig(name)
 			end
 		end
 	end
-	self:Notify({ Title = "Config loaded", Content = name, Type = "Success", Duration = 2.5 })
+	self:Notify({ Title = auto and "Auto loaded config" or "Config loaded", Content = name, Type = "Success", Duration = 2.5 })
 	return true
+end
+
+local AUTOLOAD_FILE = CONFIG_DIR .. "/autoload.txt"
+
+local function ConfigPath(name)
+	return CONFIG_DIR .. "/" .. name .. ".json"
+end
+
+function Library:ConfigExists(name)
+	if typeof(isfile) ~= "function" then
+		return false
+	end
+	local ok, found = pcall(isfile, ConfigPath(CleanName(name)))
+	return ok and found == true
+end
+
+function Library:OverwriteConfig(name)
+	name = CleanName(name)
+	if not self:ConfigExists(name) then
+		self:Error("No config named '" .. name .. "' to overwrite.", "Config")
+		return false
+	end
+	return self:SaveConfig(name, true)
+end
+
+function Library:DeleteConfig(name)
+	if typeof(delfile) ~= "function" then
+		self:Error("This environment has no delfile, so configs can't be deleted.", "Config")
+		return false
+	end
+	name = CleanName(name)
+	if not self:ConfigExists(name) then
+		self:Error("No config named '" .. name .. "'.", "Config")
+		return false
+	end
+	local ok, err = pcall(delfile, ConfigPath(name))
+	if not ok then
+		self:Error(tostring(err), "Config delete failed")
+		return false
+	end
+	-- a deleted config can't stay as the auto load one
+	if self:GetAutoLoad() == name then
+		pcall(delfile, AUTOLOAD_FILE)
+	end
+	self:Notify({ Title = "Config deleted", Content = name, Type = "Success", Duration = 2.5 })
+	return true
+end
+
+-- name of the config that loads on startup, or nil
+function Library:GetAutoLoad()
+	if typeof(isfile) ~= "function" or typeof(readfile) ~= "function" then
+		return nil
+	end
+	local okFile, hasFile = pcall(isfile, AUTOLOAD_FILE)
+	if not okFile or not hasFile then
+		return nil
+	end
+	local ok, text = pcall(readfile, AUTOLOAD_FILE)
+	if not ok or type(text) ~= "string" then
+		return nil
+	end
+	local name = CleanName((text:gsub("%s+", "")))
+	if text:gsub("%s+", "") == "" or not self:ConfigExists(name) then
+		return nil
+	end
+	return name
+end
+
+function Library:SetAutoLoad(name)
+	if not HasFiles() then
+		self:Error("This environment has no writefile/readfile, so auto load can't be set.", "Config")
+		return false
+	end
+	name = CleanName(name)
+	if not self:ConfigExists(name) then
+		self:Error("No config named '" .. name .. "'.", "Config")
+		return false
+	end
+	local ok, err = pcall(writefile, AUTOLOAD_FILE, name)
+	if not ok then
+		self:Error(tostring(err), "Auto load failed")
+		return false
+	end
+	self:Notify({ Title = "Auto load set", Content = name, Type = "Success", Duration = 2.5 })
+	return true
+end
+
+-- pass a name to only clear it when that config is the auto load one
+function Library:ClearAutoLoad(name)
+	local current = self:GetAutoLoad()
+	if not current then
+		self:Notify({ Title = "Auto load", Content = "No auto load config is set.", Type = "Warning", Duration = 2.5 })
+		return false
+	end
+	if name ~= nil and CleanName(name) ~= current then
+		self:Notify({
+			Title = "Auto load",
+			Content = "'" .. CleanName(name) .. "' is not the auto load config (it is '" .. current .. "').",
+			Type = "Warning",
+			Duration = 3.5,
+		})
+		return false
+	end
+	if typeof(delfile) ~= "function" then
+		self:Error("This environment has no delfile, so auto load can't be removed.", "Config")
+		return false
+	end
+	local ok, err = pcall(delfile, AUTOLOAD_FILE)
+	if not ok then
+		self:Error(tostring(err), "Auto load failed")
+		return false
+	end
+	self:Notify({ Title = "Auto load removed", Content = current, Type = "Success", Duration = 2.5 })
+	return true
+end
+
+function Library:AutoLoad()
+	local name = self:GetAutoLoad()
+	if not name then
+		return false
+	end
+	return self:LoadConfig(name, true)
 end
 
 -- window
@@ -2181,39 +2305,150 @@ function Library:CreateWindow(opts)
 			return obj
 		end
 
-		-- save / load buttons for every element that has a Flag
-		function tab:ConfigManager()
+		-- config manager: create, load, overwrite, delete and auto load (elements need a Flag)
+		-- pass { AutoLoad = false } to stop the saved auto load config running on its own
+		function tab:ConfigManager(opts)
+			opts = opts or {}
 			tab:Section("Configs")
-			local nameBox = tab:Textbox({ Name = "Config name", Default = "default", Placeholder = "default" })
+			local status = tab:Label("Auto load: none")
+			local nameBox = tab:Textbox({ Name = "New config name", Default = "default", Placeholder = "default" })
 			local list = tab:Dropdown({
-				Name = "Saved configs",
+				Name = "Selected config",
 				Options = Library:GetConfigs(),
-				Callback = function(choice)
-					if choice then
-						nameBox:Set(choice, true)
+			})
+
+			local function updateStatus()
+				local current = Library:GetAutoLoad()
+				status:Set("Auto load: " .. (current or "none"))
+			end
+			local function refreshAll()
+				list:Refresh(Library:GetConfigs())
+				updateStatus()
+			end
+			-- the config picked in the dropdown, or nil with a hint
+			local function selected()
+				local name = list:Get()
+				if not name then
+					Library:Notify({
+						Title = "Config",
+						Content = "Pick a config in 'Selected config' first.",
+						Type = "Warning",
+						Duration = 3,
+					})
+				end
+				return name
+			end
+
+			tab:Button({
+				Name = "Create config",
+				Callback = function()
+					local name = CleanName(nameBox:Get())
+					if Library:ConfigExists(name) then
+						Library:Notify({
+							Title = "Config",
+							Content = "'" .. name .. "' already exists. Select it and use Overwrite.",
+							Type = "Warning",
+							Duration = 3.5,
+						})
+						return
+					end
+					if Library:SaveConfig(name) then
+						refreshAll()
+						list:Set(name, true)
 					end
 				end,
 			})
 			tab:Button({
-				Name = "Save config",
+				Name = "Load selected config",
 				Callback = function()
-					if Library:SaveConfig(nameBox:Get()) then
-						list:Refresh(Library:GetConfigs())
+					local name = selected()
+					if name then
+						Library:LoadConfig(name)
 					end
 				end,
 			})
 			tab:Button({
-				Name = "Load config",
+				Name = "Overwrite selected config",
 				Callback = function()
-					Library:LoadConfig(nameBox:Get())
+					local name = selected()
+					if not name then
+						return
+					end
+					Library:Dialog({
+						Title = "Overwrite config?",
+						Content = "'" .. name .. "' will be replaced with your current settings.",
+						Buttons = {
+							{
+								Name = "Overwrite",
+								Callback = function()
+									Library:OverwriteConfig(name)
+								end,
+							},
+							{ Name = "Cancel" },
+						},
+					})
+				end,
+			})
+			tab:Button({
+				Name = "Delete selected config",
+				Callback = function()
+					local name = selected()
+					if not name then
+						return
+					end
+					Library:Dialog({
+						Title = "Delete config?",
+						Content = "'" .. name .. "' will be deleted. This can't be undone.",
+						Buttons = {
+							{
+								Name = "Delete",
+								Callback = function()
+									if Library:DeleteConfig(name) then
+										refreshAll()
+									end
+								end,
+							},
+							{ Name = "Cancel" },
+						},
+					})
+				end,
+			})
+
+			tab:Section("Auto load")
+			tab:Button({
+				Name = "Set selected as auto load",
+				Callback = function()
+					local name = selected()
+					if name and Library:SetAutoLoad(name) then
+						updateStatus()
+					end
+				end,
+			})
+			tab:Button({
+				Name = "Delete auto load (selected config)",
+				Callback = function()
+					local name = selected()
+					if name and Library:ClearAutoLoad(name) then
+						updateStatus()
+					end
 				end,
 			})
 			tab:Button({
 				Name = "Refresh list",
-				Callback = function()
-					list:Refresh(Library:GetConfigs())
-				end,
+				Callback = refreshAll,
 			})
+
+			updateStatus()
+
+			-- run the auto load config once, after the rest of the UI has been built
+			if opts.AutoLoad ~= false and not Library._autoLoaded then
+				Library._autoLoaded = true
+				task.delay(0.5, function()
+					if Library:AutoLoad() then
+						updateStatus()
+					end
+				end)
+			end
 		end
 
 		return tab
