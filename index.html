@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NovaUI - Roblox UI library</title>
+<meta name="description" content="NovaUI is a Roblox UI library with tabs, sliders, dropdowns, configs, a loading screen and more.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <strong>NovaUI</strong>
+    <nav>
+      <a href="#install">Install</a>
+      <a href="#features">Features</a>
+      <a href="disclaimer.html">Disclaimer</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>A UI library for Roblox scripts</h1>
+  <p class="lead">Windows, tabs, sliders, dropdowns, keybinds, saved configs and a loading screen. Made to work on mobile and desktop.</p>
+
+  <h2 id="install">Load it</h2>
+  <p>Run this in your executor to load the library:</p>
+  <div class="code">
+    <pre id="snippet">local NovaUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/kn4ght-security/NovaUI_Library/refs/heads/main/NovaUI_Library.lua"))()
+
+local window = NovaUI:CreateWindow({ Title = "My Hub" })
+local main = window:CreateTab("Main")
+main:Button({ Name = "Hello", Callback = function() print("hi") end })</pre>
+    <button type="button" id="copy">Copy code</button>
+  </div>
+  <p>A full example with every element is in <a href="https://github.com/kn4ght-security/NovaUI_Library">the GitHub repository</a>.</p>
+
+  <h2 id="features">What is in it</h2>
+  <ul>
+    <li>Toggles, sliders, buttons, dropdowns (multi select and search), textboxes, keybinds and color pickers</li>
+    <li>Config manager: create, load, overwrite, delete and auto load</li>
+    <li>Loading screen with a PNG image</li>
+    <li>Profile tab with the player's avatar</li>
+    <li>Notifications, dialogs and a code box</li>
+  </ul>
+
+  <div class="note">
+    <p>NovaUI is an independent project and is not affiliated with Roblox. Please read the <a href="disclaimer.html">disclaimer</a> before using it.</p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap"><p>&copy; 2026 YOUR NAME. <a href="disclaimer.html">Disclaimer</a></p></div>
+</footer>
+
+<script>
+  var btn = document.getElementById("copy");
+  btn.addEventListener("click", function () {
+    var text = document.getElementById("snippet").textContent;
+    function done() {
+      btn.textContent = "Copied";
+      btn.classList.add("done");
+      setTimeout(function () { btn.textContent = "Copy code"; btn.classList.remove("done"); }, 1800);
+    }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(done, function () {});
+    } else {
+      var t = document.createElement("textarea");
+      t.value = text; document.body.appendChild(t); t.select();
+      try { document.execCommand("copy"); done(); } catch (e) {}
+      document.body.removeChild(t);
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+:root {
+  --bg: #14141c;
+  --panel: #1b1b27;
+  --card: #242434;
+  --accent: #7c5cff;
+  --text: #f0f0fa;
+  --sub: #a0a0b6;
+  --ok: #50c878;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+a { color: #b4a2ff; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+header { background: var(--panel); border-bottom: 1px solid var(--card); }
+header .wrap { display: flex; justify-content: space-between; align-items: center; height: 56px; }
+header strong { font-size: 18px; }
+header nav a { margin-left: 18px; color: var(--sub); text-decoration: none; }
+header nav a:hover { color: var(--text); }
+h1 { font-size: clamp(32px, 7vw, 46px); line-height: 1.15; margin: 56px 0 12px; }
+h2 { font-size: 22px; margin: 40px 0 8px; }
+p, li { color: var(--sub); max-width: 62ch; }
+.lead { font-size: 18px; color: var(--text); }
+.code {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--card);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  margin: 24px 0;
+}
+.code pre {
+  margin: 0;
+  padding: 16px 96px 16px 16px;
+  overflow-x: auto;
+  color: var(--text);
+  font: 14px/1.5 ui-monospace, Consolas, monospace;
+}
+.code button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.code button.done { background: var(--ok); color: #0c2415; }
+ul { padding-left: 20px; }
+li { margin: 6px 0; }
+.note { background: var(--card); border-radius: 8px; padding: 14px 16px; margin: 20px 0; }
+.note p { margin: 0; }
+footer { margin-top: 64px; padding: 24px 0; border-top: 1px solid var(--card); color: var(--sub); font-size: 14px; }
+footer p { max-width: none; margin: 0; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
