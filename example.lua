@@ -25,11 +25,23 @@ if type(NovaUI) ~= "table" then
 	return warn("NovaUI: the file loaded but gave nothing back. Re-upload the newest NovaUI_Library.lua (last line must be: return NovaUI)")
 end
 
+-- loading screen (put logo.png in your repo, or use an rbxassetid:// link)
+local loading = NovaUI:LoadingScreen({
+	Title = "My Hub",
+	Subtitle = "Starting up...",
+	Image = "https://raw.githubusercontent.com/kn4ght-security/NovaUI_Library/refs/heads/main/logo.png",
+	ImageSize = 120,
+})
+loading:SetProgress(0.2)
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
 NovaUI:CatchErrors(true) -- red popup for console errors
 NovaUI:SetWatermark("My Hub")
+
+loading:SetText("Building window...")
+loading:SetProgress(0.5)
 
 local window = NovaUI:CreateWindow({
 	Title = "My Hub",
@@ -192,6 +204,9 @@ extras:CodeBox({
 })
 
 -- Settings tab
+loading:SetText("Almost done...")
+loading:SetProgress(0.8)
+
 local settings = window:CreateTab("Settings")
 settings:Section("Configs")
 settings:ConfigManager() -- create / load / overwrite / delete + auto load
@@ -205,4 +220,8 @@ settings:Button({
 	end,
 })
 
-window:SelectTab("Main")
+-- the Profile tab (avatar + hello) opens first; use window:SelectTab("Main") to start somewhere else
+
+loading:SetProgress(1)
+loading:SetText("Ready")
+loading:Close(0.6)

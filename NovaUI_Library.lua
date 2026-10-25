@@ -5,11 +5,11 @@ local NovaUI = (function()
 --[[
 	quick usage
 	window = NovaUI:CreateWindow({Title, Subtitle, Size, ToggleKey})
-	tab = window:CreateTab("name")
+	tab = window:CreateTab("name")  (a Profile tab with your avatar is added first; pass ProfileTab = false to skip it)
 	tab:Section / Label / Paragraph / Divider / Button / Toggle / Slider
 	tab:Dropdown / Textbox / Keybind / ColorPicker / Progress / CodeBox / ConfigManager
 	add Flag = "id" to an element and it gets saved with configs
-	NovaUI:Notify / Dialog / Run / CheckSyntax / SaveConfig / LoadConfig / OverwriteConfig / DeleteConfig / SetAutoLoad / ClearAutoLoad / AutoLoad / Unload
+	NovaUI:LoadingScreen / Notify / Dialog / Run / CheckSyntax / SaveConfig / LoadConfig / OverwriteConfig / DeleteConfig / SetAutoLoad / ClearAutoLoad / AutoLoad / Unload
 ]]
 
 local cloneref = cloneref or clonereference or function(obj)
@@ -1078,6 +1078,233 @@ function Library:AutoLoad()
 	return self:LoadConfig(name, true)
 end
 
+-- loading screen
+
+-- turns an image link into something an ImageLabel can show.
+-- github links are downloaded, saved to the NovaUI folder and wrapped with getcustomasset.
+local function LoadImageAsset(src)
+	if type(src) == "number" then
+		return "rbxassetid://" .. src
+	end
+	if type(src) ~= "string" or src == "" then
+		return nil
+	end
+	if not src:match("^https?://") then
+		return src -- already rbxassetid:// or rbxasset://
+	end
+	-- a normal github page link -> the raw file link
+	src = src:gsub("^https://github%.com/([^/]+)/([^/]+)/blob/(.+)$", "https://raw.githubusercontent.com/%1/%2/%3")
+
+	local getAsset = getcustomasset or getsynasset
+	if typeof(getAsset) ~= "function" or not HasFiles() then
+		warn("[NovaUI] this executor can't show images from links (needs writefile + getcustomasset).")
+		return nil
+	end
+
+	local sum = 0
+	for i = 1, #src do
+		sum = (sum * 31 + src:byte(i)) % 1000000007
+	end
+	local path = CONFIG_DIR .. "/img_" .. sum .. ".png"
+
+	pcall(function()
+		if typeof(isfolder) == "function" and typeof(makefolder) == "function" and not isfolder(CONFIG_DIR) then
+			makefolder(CONFIG_DIR)
+		end
+	end)
+
+	local okGet, data = pcall(game.HttpGet, game, src)
+	if okGet and type(data) == "string" and #data > 8 then
+		local isPng = data:sub(2, 4) == "PNG"
+		local isJpg = data:byte(1) == 255 and data:byte(2) == 216
+		if isPng or isJpg then
+			pcall(writefile, path, data)
+		else
+			warn("[NovaUI] the image link did not return a PNG/JPG. Use the raw link (raw.githubusercontent.com).")
+		end
+	end
+
+	-- fall back to an earlier download if this one failed
+	if typeof(isfile) == "function" then
+		local okFile, exists = pcall(isfile, path)
+		if not okFile or not exists then
+			return nil
+		end
+	end
+	local ok, asset = pcall(getAsset, path)
+	if ok then
+		return asset
+	end
+	return nil
+end
+
+--[[
+	local loading = Library:LoadingScreen({
+		Title = "My Hub",
+		Subtitle = "Starting up...",
+		Image = "https://raw.githubusercontent.com/user/repo/main/logo.png", -- or rbxassetid://123 / a number
+		ImageSize = 120,
+		Duration = 3, -- optional: fills the bar by itself, then closes
+	})
+	loading:SetProgress(0.5)   -- 0 to 1
+	loading:SetText("Loading settings")
+	loading:Close()
+]]
+function Library:LoadingScreen(o)
+	o = o or {}
+	local gui = GetGui()
+	local old = gui:FindFirstChild("LoadingScreen")
+	if old then
+		old:Destroy()
+	end
+
+	local root = New("CanvasGroup", {
+		Name = "LoadingScreen",
+		BackgroundColor3 = Theme.Background,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 1000,
+		Active = true,
+		GroupTransparency = 1,
+		Parent = gui,
+	})
+	local card = New("Frame", {
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(0, 300, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Parent = root,
+	}, {
+		New("UIListLayout", {
+			Padding = UDim.new(0, 12),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		}),
+	})
+
+	local image
+	if o.Image then
+		local size = o.ImageSize or 120
+		image = New("ImageLabel", {
+			LayoutOrder = 1,
+			BackgroundTransparency = 1,
+			Size = UDim2.fromOffset(size, size),
+			ScaleType = Enum.ScaleType.Fit,
+			ImageTransparency = 1,
+			Parent = card,
+		}, { Corner(12) })
+	end
+
+	local title = Text({
+		LayoutOrder = 2,
+		Text = o.Title or "Loading",
+		Font = Enum.Font.GothamBold,
+		TextSize = 24,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, 0, 0, 30),
+		Parent = card,
+	})
+	local status = Text({
+		LayoutOrder = 3,
+		Text = o.Subtitle or "Loading...",
+		TextColor3 = Theme.SubText,
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, 0, 0, 20),
+		Parent = card,
+	})
+	local track = New("Frame", {
+		LayoutOrder = 4,
+		BackgroundColor3 = Theme.Element,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, 6),
+		Parent = card,
+	}, { Corner(3) })
+	local fill = New("Frame", {
+		BackgroundColor3 = Theme.Accent,
+		BorderSizePixel = 0,
+		Size = UDim2.new(0, 0, 1, 0),
+		Parent = track,
+	}, { Corner(3) })
+	local percent = Text({
+		LayoutOrder = 5,
+		Text = "0%",
+		TextColor3 = Theme.SubText,
+		TextSize = 12,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, 0, 0, 16),
+		Parent = card,
+	})
+
+	Tween(root, { GroupTransparency = 0 }, 0.3)
+
+	local obj = { _closed = false }
+
+	function obj:SetProgress(p)
+		if self._closed then
+			return
+		end
+		local v = math.clamp(tonumber(p) or 0, 0, 1)
+		Tween(fill, { Size = UDim2.new(v, 0, 1, 0) }, 0.25)
+		percent.Text = math.floor(v * 100 + 0.5) .. "%"
+	end
+	function obj:SetText(t)
+		status.Text = tostring(t)
+	end
+	function obj:SetTitle(t)
+		title.Text = tostring(t)
+	end
+	function obj:Close(wait)
+		if self._closed then
+			return
+		end
+		self._closed = true
+		task.spawn(function()
+			if wait and wait > 0 then
+				task.wait(wait)
+			end
+			if not root.Parent then
+				return
+			end
+			local tw = Tween(root, { GroupTransparency = 1 }, 0.4)
+			tw.Completed:Wait()
+			pcall(function()
+				root:Destroy()
+			end)
+		end)
+	end
+
+	-- the image downloads in the background so the screen shows straight away
+	if image then
+		task.spawn(function()
+			local asset = LoadImageAsset(o.Image)
+			if asset and image.Parent then
+				image.Image = asset
+				Tween(image, { ImageTransparency = 0 }, 0.3)
+			end
+		end)
+	end
+
+	if o.Duration and o.Duration > 0 then
+		task.spawn(function()
+			local steps = 20
+			for i = 1, steps do
+				if obj._closed then
+					return
+				end
+				obj:SetProgress(i / steps)
+				task.wait(o.Duration / steps)
+			end
+			if o.AutoClose ~= false then
+				obj:Close(0.3)
+			end
+		end)
+	end
+
+	return obj
+end
+
 -- window
 
 --[[
@@ -1385,6 +1612,87 @@ function Library:CreateWindow(opts)
 			local obj = {}
 			function obj:Set(t)
 				l.Text = t
+			end
+			return obj
+		end
+
+		-- user card: avatar + "Hello, name" (used by the built-in Profile tab)
+		function tab:UserCard(o)
+			o = o or {}
+			local user = LocalPlayer
+			local shownName = user.DisplayName
+			if shownName == nil or shownName == "" then
+				shownName = user.Name
+			end
+
+			local card = New("Frame", {
+				BackgroundColor3 = Theme.Element,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				LayoutOrder = NextOrder(),
+				Parent = page,
+			}, {
+				Corner(8),
+				Pad(14, 14, 14, 14),
+				New("UIListLayout", {
+					FillDirection = Enum.FillDirection.Horizontal,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+					Padding = UDim.new(0, 14),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+				}),
+			})
+
+			local avatar = New("ImageLabel", {
+				LayoutOrder = 1,
+				BackgroundColor3 = Theme.Background,
+				Size = UDim2.fromOffset(72, 72),
+				ScaleType = Enum.ScaleType.Crop,
+				Image = "rbxthumb://type=AvatarHeadShot&id=" .. user.UserId .. "&w=150&h=150",
+				Parent = card,
+			}, { New("UICorner", { CornerRadius = UDim.new(1, 0) }), Stroke(Theme.Accent, 2) })
+
+			local info = New("Frame", {
+				LayoutOrder = 2,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, -86, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				Parent = card,
+			}, { VList(3) })
+
+			Text({
+				LayoutOrder = 1,
+				Text = (o.Greeting or "Hello") .. ", " .. shownName .. "!",
+				Font = Enum.Font.GothamBold,
+				TextSize = 20,
+				TextWrapped = true,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				Parent = info,
+			})
+			local function line(order, txt)
+				Text({
+					LayoutOrder = order,
+					Text = txt,
+					TextColor3 = Theme.SubText,
+					TextSize = 13,
+					TextWrapped = true,
+					Size = UDim2.new(1, 0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.Y,
+					Parent = info,
+				})
+			end
+			line(2, "@" .. user.Name .. "  |  ID " .. user.UserId)
+			line(3, "Account age: " .. user.AccountAge .. " days")
+			local okExec, execName = pcall(function()
+				return identifyexecutor()
+			end)
+			if okExec and execName then
+				line(4, "Executor: " .. tostring(execName))
+			end
+
+			local obj = {}
+			function obj:SetAvatar(image)
+				avatar.Image = image
 			end
 			return obj
 		end
@@ -2533,6 +2841,13 @@ function Library:CreateWindow(opts)
 				end
 			end
 		end))
+	end
+
+	-- built-in profile tab: always the first tab unless ProfileTab = false
+	if opts.ProfileTab ~= false then
+		local profile = window:CreateTab(opts.ProfileTabName or "Profile")
+		profile:UserCard({ Greeting = opts.Greeting })
+		window.ProfileTab = profile
 	end
 
 	return window
